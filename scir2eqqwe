@@ -974,9 +974,9 @@ local speedMin = 10
 local speedMax = isMobile and 100 or 4000
 local speedDefault = isMobile and 100 or 200
 
-local depthMin = isMobile and -10 or -200
-local depthMax = -10
-local depthDefault = isMobile and -10 or -30
+local depthMin = isMobile and -5 or -200
+local depthMax = -5
+local depthDefault = isMobile and -5 or -30
 
 -- Apply mobile defaults to the actual config values
 TWEEN_SPEED = speedDefault
