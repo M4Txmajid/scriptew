@@ -542,12 +542,13 @@ end
 
 --// ===================== RETURN TO SAVED ===================== --
 
-local function returnToSaved(useSmooth)
+local function returnToSaved(useSmooth, customDepth)
     if not savedCFrame or not rootPart or not rootPart.Parent then return false end
+    local depth = customDepth or TRAVEL_DEPTH
     if useSmooth then
-        smoothTween(CFrame.new(rootPart.Position.X, rootPart.Position.Y + TRAVEL_DEPTH, rootPart.Position.Z), DIVE_SPEED)
+        smoothTween(CFrame.new(rootPart.Position.X, rootPart.Position.Y + depth, rootPart.Position.Z), DIVE_SPEED)
         task.wait(0.05)
-        smoothTween(CFrame.new(savedCFrame.Position.X, savedCFrame.Position.Y + TRAVEL_DEPTH, savedCFrame.Position.Z), TWEEN_SPEED)
+        smoothTween(CFrame.new(savedCFrame.Position.X, savedCFrame.Position.Y + depth, savedCFrame.Position.Z), TWEEN_SPEED)
         task.wait(0.05)
         waitForWavesToClear(savedCFrame.Position, function() end)
         smoothTween(savedCFrame, RISE_SPEED)
@@ -1510,7 +1511,7 @@ local function startFarming()
             end
             if not AUTO_LOOP then running = false; break end; task.wait(0.3)
         end
-        if autoReturnEnabled and savedCFrame then returnToSaved(true); task.wait(0.2) end
+        if autoReturnEnabled and savedCFrame then returnToSaved(true, -5); task.wait(0.2) end
         if not autoTrialRunning then unlockPhysics(); disableNoclip() end
         StartBtn.BackgroundColor3 = Color3.fromRGB(40,140,40); StatusLabel.Text = "Stopped"; PhaseLabel.Text = "--"
     end)
