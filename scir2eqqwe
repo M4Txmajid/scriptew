@@ -36,6 +36,12 @@ local TRIAL_BATCH_SIZE = 3
 --// Detect mobile
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
+--// MOBILE LIMIT: Clamp default config values for mobile
+if isMobile then
+    TWEEN_SPEED = math.min(TWEEN_SPEED, 100)
+    TRAVEL_DEPTH = math.max(TRAVEL_DEPTH, -5)
+end
+
 --// State variables
 local running = false
 local activeTab = "Brainrot"
@@ -969,23 +975,17 @@ local function createSlider(lt, mi, ma, def, cb)
     UserInputService.InputChanged:Connect(function(i) if sd and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then us(i) end end)
     UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sd=false end end)
 end
--- Mobile-specific limits and defaults
-local speedMin = 10
-local speedMax = isMobile and 100 or 4000
-local speedDefault = isMobile and 100 or 200
 
-local depthMin = isMobile and -5 or -200
-local depthMax = -5
-local depthDefault = isMobile and -5 or -30
+--// MOBILE LIMIT: Use capped ranges for Speed and Depth sliders on mobile
+local speedSliderMax = isMobile and 100 or 4000
+local depthSliderMin = isMobile and -5 or -200
+local depthSliderMax = isMobile and -1 or -10
 
--- Apply mobile defaults to the actual config values
-TWEEN_SPEED = speedDefault
-TRAVEL_DEPTH = depthDefault
-
-createSlider("Speed", speedMin, speedMax, speedDefault, function(v) TWEEN_SPEED = v end)
-createSlider("Depth", depthMin, depthMax, depthDefault, function(v) TRAVEL_DEPTH = v end)
+createSlider("Speed", 10, speedSliderMax, math.clamp(TWEEN_SPEED, 10, speedSliderMax), function(v) TWEEN_SPEED = v end)
+createSlider("Depth", depthSliderMin, depthSliderMax, math.clamp(TRAVEL_DEPTH, depthSliderMin, depthSliderMax), function(v) TRAVEL_DEPTH = v end)
 createSlider("Grab H", 0, 20, GRAB_HEIGHT, function(v) GRAB_HEIGHT = v end)
 createSlider("Wave Safe", 30, 300, WAVE_SAFE_DISTANCE, function(v) WAVE_SAFE_DISTANCE = v end)
+
 --// ===================== TOGGLES ===================== --
 
 local function createToggle(lt, def, col, cb)
@@ -1509,8 +1509,9 @@ local function startFarming()
                 smoothTween(CFrame.new(rootPart.Position.X, rootPart.Position.Y+TRAVEL_DEPTH, rootPart.Position.Z), DIVE_SPEED); task.wait(0.05)
             end
             if not AUTO_LOOP then running = false; break end; task.wait(0.3)
-            end
-            if not autoTrialRunning then unlockPhysics(); disableNoclip() end
+        end
+        if autoReturnEnabled and savedCFrame then returnToSaved(true); task.wait(0.2) end
+        if not autoTrialRunning then unlockPhysics(); disableNoclip() end
         StartBtn.BackgroundColor3 = Color3.fromRGB(40,140,40); StatusLabel.Text = "Stopped"; PhaseLabel.Text = "--"
     end)
 end
@@ -1520,69 +1521,6 @@ local function stopFarming() running = false; stopTween() end
 
 StartBtn.MouseButton1Click:Connect(startFarming)
 StopBtn.MouseButton1Click:Connect(function() stopFarming(); stopAutoTrial() end)
-StopBtn.MouseButton1Click:Connect(function()
-    -- Stop loops but DON'T unlock physics yet
-    running = false
-    autoTrialEnabled = false
-    autoTrialRunning = false
-    trialInProgress = false
-    trialCollecting = false
-    
-    -- Cancel current tween
-    stopTween()
-    stopContinuousTracker()
-    resetRarityTracker()
-    restorePreviousSelections()
-    
-    if savedTrialTab then switchTab(savedTrialTab); savedTrialTab = nil end
-    
-    -- Freeze character immediately (prevent falling)
-    if rootPart and rootPart.Parent then
-        enableNoclip()
-        lockPhysics()
-        rootPart.Velocity = Vector3.zero
-        rootPart.AssemblyLinearVelocity = Vector3.zero
-        rootPart.AssemblyAngularVelocity = Vector3.zero
-    end
-    
-    -- Update UI
-    TrialStatusLabel.Text = "Trial: OFF"
-    TrialStatusLabel.TextColor3 = Color3.fromRGB(180,180,180)
-    TrialDetailLabel.Text = "Requirement: --"
-    TrialCollectLabel.Text = "Returning..."
-    TrialCollectLabel.TextColor3 = Color3.fromRGB(255,200,0)
-    TrialTrackerLabel.Text = "Tracker: Idle"
-    TrialProgressLabel.Text = "Progress: 0/0"
-    TrialDebugLabel.Text = "Debug: --"
-    StatusLabel.Text = "Returning..."
-    PhaseLabel.Text = "Tween to saved pos"
-    
-    -- Tween back THEN unlock physics
-    if savedCFrame and rootPart and rootPart.Parent then
-        task.spawn(function()
-            -- Direct tween return (physics stays locked)
-            returnToSaved(true)
-            task.wait(0.3)
-            
-            -- NOW unlock physics after we're back
-            unlockPhysics()
-            disableNoclip()
-            
-            StatusLabel.Text = "Stopped"
-            PhaseLabel.Text = "--"
-            TrialCollectLabel.Text = "Collecting: --"
-            StartBtn.BackgroundColor3 = Color3.fromRGB(40,140,40)
-        end)
-    else
-        -- No saved position - just stop
-        unlockPhysics()
-        disableNoclip()
-        StatusLabel.Text = "Stopped (no saved pos)"
-        PhaseLabel.Text = "--"
-        TrialCollectLabel.Text = "Collecting: --"
-        StartBtn.BackgroundColor3 = Color3.fromRGB(40,140,40)
-    end
-end)
 RefreshBtn.MouseButton1Click:Connect(refreshActiveTab)
 SelectAllBtn.MouseButton1Click:Connect(function()
     if activeTab == "Brainrot" then
