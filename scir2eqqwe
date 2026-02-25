@@ -1522,8 +1522,33 @@ local function startFarming()
 end
 local function stopFarming()
     running = false
-    stopTween()
-    if rootPart and rootPart.Parent then
+    tweening = false
+    if currentTween then
+        currentTween:Cancel()
+        currentTween = nil
+    end
+    -- Instantly tween back to saved position without any depth
+    if rootPart and rootPart.Parent and savedCFrame then
+        local safePos = savedCFrame.Position
+        local safeCF = CFrame.new(safePos.X, safePos.Y, safePos.Z)
+        rootPart.Velocity = Vector3.zero
+        rootPart.AssemblyLinearVelocity = Vector3.zero
+        rootPart.AssemblyAngularVelocity = Vector3.zero
+        if bodyVel and bodyVel.Parent then
+            bodyVel.Velocity = Vector3.zero
+        end
+        -- Immediately tween straight to saved position no depth dip
+        local dist = (rootPart.Position - safeCF.Position).Magnitude
+        local tweenTime = math.max(dist / TWEEN_SPEED, 0.05)
+        local returnTween = TweenService:Create(rootPart, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {CFrame = safeCF})
+        returnTween:Play()
+        returnTween.Completed:Connect(function()
+            if rootPart and rootPart.Parent then
+                rootPart.Velocity = Vector3.zero
+                rootPart.AssemblyLinearVelocity = Vector3.zero
+            end
+        end)
+    elseif rootPart and rootPart.Parent then
         rootPart.Velocity = Vector3.zero
         rootPart.AssemblyLinearVelocity = Vector3.zero
         rootPart.AssemblyAngularVelocity = Vector3.zero
