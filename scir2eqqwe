@@ -542,13 +542,13 @@ end
 
 --// ===================== RETURN TO SAVED ===================== --
 
-local function returnToSaved(useSmooth, customDepth)
+local function returnToSaved(useSmooth, depthOverride)
     if not savedCFrame or not rootPart or not rootPart.Parent then return false end
-    local depth = customDepth or TRAVEL_DEPTH
+    local useDepth = depthOverride or TRAVEL_DEPTH
     if useSmooth then
-        smoothTween(CFrame.new(rootPart.Position.X, rootPart.Position.Y + depth, rootPart.Position.Z), DIVE_SPEED)
+        smoothTween(CFrame.new(rootPart.Position.X, rootPart.Position.Y + useDepth, rootPart.Position.Z), DIVE_SPEED)
         task.wait(0.05)
-        smoothTween(CFrame.new(savedCFrame.Position.X, savedCFrame.Position.Y + depth, savedCFrame.Position.Z), TWEEN_SPEED)
+        smoothTween(CFrame.new(savedCFrame.Position.X, savedCFrame.Position.Y + useDepth, savedCFrame.Position.Z), TWEEN_SPEED)
         task.wait(0.05)
         waitForWavesToClear(savedCFrame.Position, function() end)
         smoothTween(savedCFrame, RISE_SPEED)
@@ -557,7 +557,6 @@ local function returnToSaved(useSmooth, customDepth)
     end
     return true
 end
-
 --// ===================== PROXIMITY PROMPT ===================== --
 
 local function fireProximityPrompt(prompt)
@@ -1469,7 +1468,12 @@ local function startFarming()
     if not savedCFrame then saveCurrentPosition(); updateSavedPosLabel(); LogLabel.Text = "Auto-saved" end
     enableNoclip(); lockPhysics(); StatusLabel.Text = "Running..."; StartBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
     task.spawn(function()
-        refreshChar(); smoothTween(CFrame.new(rootPart.Position.X, rootPart.Position.Y+TRAVEL_DEPTH, rootPart.Position.Z), DIVE_SPEED)
+    refreshChar(); smoothTween(CFrame.new(rootPart.Position.X, rootPart.Position.Y+TRAVEL_DEPTH, rootPart.Position.Z), DIVE_SPEED)
+        if not running then
+            if not autoTrialRunning then unlockPhysics(); disableNoclip() end
+            StartBtn.BackgroundColor3 = Color3.fromRGB(40,140,40); StatusLabel.Text = "Stopped"; PhaseLabel.Text = "--"
+            return
+        end
         while running do
             if trialInProgress or trialCollecting then PhaseLabel.Text = "Paused (trial)..."; task.wait(1); continue end
             refreshChar()
@@ -1516,8 +1520,18 @@ local function startFarming()
         StartBtn.BackgroundColor3 = Color3.fromRGB(40,140,40); StatusLabel.Text = "Stopped"; PhaseLabel.Text = "--"
     end)
 end
-local function stopFarming() running = false; stopTween() end
-
+local function stopFarming()
+    running = false
+    stopTween()
+    if rootPart and rootPart.Parent then
+        rootPart.Velocity = Vector3.zero
+        rootPart.AssemblyLinearVelocity = Vector3.zero
+        rootPart.AssemblyAngularVelocity = Vector3.zero
+        if bodyVel and bodyVel.Parent then
+            bodyVel.Velocity = Vector3.zero
+        end
+    end
+end
 --// ===================== BUTTON CONNECTIONS ===================== --
 
 StartBtn.MouseButton1Click:Connect(startFarming)
