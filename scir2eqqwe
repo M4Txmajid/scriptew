@@ -1530,7 +1530,7 @@ local function stopFarming()
     -- Instantly tween back to saved position without any depth
     if rootPart and rootPart.Parent and savedCFrame then
         local safePos = savedCFrame.Position
-        local safeCF = CFrame.new(safePos.X, safePos.Y, safePos.Z)
+        local safeCF = CFrame.new(safePos.X, safePos.Y - 5, safePos.Z)
         rootPart.Velocity = Vector3.zero
         rootPart.AssemblyLinearVelocity = Vector3.zero
         rootPart.AssemblyAngularVelocity = Vector3.zero
